@@ -214,7 +214,7 @@ void SYS_Initialize ( void* data )
 
     EVIC_Initialize();
     
-    vTaskGetUART1byte_Init();
+    vTaskGetUART1bytes_Init();
     vTaskProcessUBXmessage_Init();
     vTaskSendUBXmessage_Init();
 

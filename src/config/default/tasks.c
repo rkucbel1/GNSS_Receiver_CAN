@@ -57,12 +57,12 @@
 QueueHandle_t xUBXqueue;
 SemaphoreHandle_t xUBXMutex;
 
-TaskHandle_t xTaskGetUART1byte;
+TaskHandle_t xTaskGetUART1bytes;
 
-static void lvTaskGetUART1byte(void *pvParameters)
+static void lvTaskGetUART1bytes(void *pvParameters)
 {   
   while(1) {
-    vTaskGetUART1byte();
+    vTaskGetUART1bytes();
   }
 }
 
@@ -81,6 +81,15 @@ static void lvTaskSendUBXmessage(void *pvParameters)
 {   
   while(1) {
     vTaskSendUBXmessage();
+  }
+}
+
+TaskHandle_t xTaskSendUBXheartbeat;
+
+static void lvTaskSendUBXheartbeat(void *pvParameters)
+{   
+  while(1) {
+    vTaskSendUBXheartbeat();
   }
 }
 
@@ -105,9 +114,10 @@ void SYS_Tasks ( void )
   
   if(xUBXqueue != NULL){
   
-    (void) xTaskCreate((TaskFunction_t)lvTaskGetUART1byte,      "GetUART1byte",      1024, NULL, 1, &xTaskGetUART1byte);
+    (void) xTaskCreate((TaskFunction_t)lvTaskGetUART1bytes,      "GetUART1bytes",    1024, NULL, 1, &xTaskGetUART1bytes);
     (void) xTaskCreate((TaskFunction_t)lvTaskProcessUBXmessage, "ProcessUBXmessage", 1024, NULL, 2, &xTaskProcessUBXmessage);
     (void) xTaskCreate((TaskFunction_t)lvTaskSendUBXmessage,    "SendUBXmessage",    1024, NULL, 3, &xTaskSendUBXmessage);
+    (void) xTaskCreate((TaskFunction_t)lvTaskSendUBXheartbeat,  "SendUBXheartbeat",   512, NULL, 3, &xTaskSendUBXheartbeat);
     
     vTaskStartScheduler();
   }

@@ -19,8 +19,11 @@
 /* Buffer used to receive from DMA*/
 static uint8_t __attribute__((coherent)) readByte[8] = {};
 
-/* Buffer used to hold received UBX frame for further processing (packing into PDUs */
+/* Buffer used to hold received UBX frame for further processing (packing into PDUs) */
 uint8_t UBX_BUF[100];
+
+/* Max Time out waiting for FreeRTOS kernel objects */
+TickType_t timeout = 1000/portTICK_PERIOD_MS;
 
 /* Structures used to hold parts of interest of each UBX Frame. */
 /* Each structure contains members that are CAN messages (PDUs) packed according to a dbc file description. */
@@ -100,11 +103,11 @@ static void UARTDmaChannelHandler(DMAC_TRANSFER_EVENT event, uintptr_t contextHa
     xHigherPriorityTaskWoken = pdFALSE;
     
     if (event == DMAC_TRANSFER_EVENT_COMPLETE) {
-      vTaskNotifyGiveFromISR(xTaskGetUART1byte, &xHigherPriorityTaskWoken);
+      vTaskNotifyGiveFromISR(xTaskGetUART1bytes, &xHigherPriorityTaskWoken);
     }
 }
 
-void vTaskGetUART1byte(void)
+void vTaskGetUART1bytes(void)
 {
    uint8_t i;
   
@@ -137,7 +140,7 @@ void vTaskProcessUBXmessage(void)
       
     /* Look for the header of a UBX frame. Look for byte sequence 0xB5 0x62 0x01 0xXX where 0xXX is type */
     if (f_FrameFoundHeader != 4) {
-      f_FrameFoundHeader = UBXframeFound(ReceivedValue, &FrameType);
+      f_FrameFoundHeader = UBXframeFind(ReceivedValue, &FrameType);
     }
     
     else if ((f_FrameFoundHeader == 1) || (f_FrameFoundHeader == 2) || (f_FrameFoundHeader == 3)) {
@@ -150,10 +153,15 @@ void vTaskProcessUBXmessage(void)
        
       /* If UBX_BUF is populated, pack the appropriate PDU structures */
      if (f_FrameProcessed == 3) {
-       xSemaphoreTake(xUBXMutex, portMAX_DELAY);
-       PackPDU(FrameType);
-       xSemaphoreGive(xUBXMutex);
-       f_FrameFoundHeader = 0;
+       if(xSemaphoreTake(xUBXMutex, portMAX_DELAY) == pdTRUE) {
+         PackPDU(FrameType);
+         xSemaphoreGive(xUBXMutex);
+         f_FrameFoundHeader = 0;
+       }
+       else {
+         /* Timeout occurred - implement reset */
+           while(1); //this is temporary for debugging
+       }
      }
          
      else {
@@ -165,64 +173,87 @@ void vTaskProcessUBXmessage(void)
       f_FrameProcessed = 0;
     }
   }
+  
+  else {
+    /* Do Nothing */    
+  }
 }
 
 void vTaskSendUBXmessage(void)
 {
-  //uint8_t GNSS_Heartbeat[8] = {0xA5, 0xA5, 0xDE, 0xAD, 0xBE, 0xEF, 0xA5, 0xA5};
-  //static uint8_t i = 0;
   
-  //CAN1_MessageTransmit(0x481, 8, &GNSS_Heartbeat[0], 1, 0, 0);
-
   if (PDU_pvt.f_NavPVT == 1) {
-    xSemaphoreTake(xUBXMutex, portMAX_DELAY);
-    //taskENTER_CRITICAL();
-    if (CAN1_MessageTransmit(0x470, 8, &PDU_pvt.NavPVT_Time[0], 1, 0, 0) == true) { HB_LED_Toggle(); }
-    if (CAN1_MessageTransmit(0x471, 8, &PDU_pvt.NavPVT_Misc[0], 1, 0, 0) == true) { HB_LED_Toggle(); }
-    if (CAN1_MessageTransmit(0x472, 8, &PDU_pvt.NavPVT_LatLon[0], 1, 0, 0) == true) { HB_LED_Toggle(); }
-    if (CAN1_MessageTransmit(0x473, 8, &PDU_pvt.NavPVT_Height[0], 1, 0, 0) == true) { HB_LED_Toggle(); }
-    if (CAN1_MessageTransmit(0x474, 8, &PDU_pvt.NavPVT_VNED[0], 1, 0, 0) == true) { HB_LED_Toggle(); }
-    //taskEXIT_CRITICAL();
-    HB_LED_Toggle();
+    if (xSemaphoreTake(xUBXMutex, timeout) == pdTRUE) {
+      taskENTER_CRITICAL();
+      if (CAN1_MessageTransmit(0x470, 8, &PDU_pvt.NavPVT_Time[0], 1, 0, 0) == true) { HB_LED_Toggle(); }
+      if (CAN1_MessageTransmit(0x471, 8, &PDU_pvt.NavPVT_Misc[0], 1, 0, 0) == true) { HB_LED_Toggle(); }
+      if (CAN1_MessageTransmit(0x472, 8, &PDU_pvt.NavPVT_LatLon[0], 1, 0, 0) == true) { HB_LED_Toggle(); }
+      if (CAN1_MessageTransmit(0x473, 8, &PDU_pvt.NavPVT_Height[0], 1, 0, 0) == true) { HB_LED_Toggle(); }
+      if (CAN1_MessageTransmit(0x474, 8, &PDU_pvt.NavPVT_VNED[0], 1, 0, 0) == true) { HB_LED_Toggle(); }
+      taskEXIT_CRITICAL();
     
-    PDU_pvt.f_NavPVT = 0;
+      PDU_pvt.f_NavPVT = 0;
     
-    xSemaphoreGive(xUBXMutex);
+      xSemaphoreGive(xUBXMutex);
+    }
+    else {
+      /* Timeout occurred - implement SW reset*/
+      while(1);
+    }
   }
   
    if (PDU_cov.f_NavCOV == 1) {
-   xSemaphoreTake(xUBXMutex, portMAX_DELAY);
-   //taskENTER_CRITICAL();
-   if (CAN1_MessageTransmit(0x475, 8, &PDU_cov.NavCOV_PartA[0], 1, 0, 0) == true) { HB_LED_Toggle(); }
-   if (CAN1_MessageTransmit(0x476, 8, &PDU_cov.NavCOV_PartB[0], 1, 0, 0) == true) { HB_LED_Toggle(); }
-   if (CAN1_MessageTransmit(0x477, 8, &PDU_cov.NavCOV_PartC[0], 1, 0, 0) == true) { HB_LED_Toggle(); }
-   //taskEXIT_CRITICAL();
-   HB_LED_Toggle();
+     if (xSemaphoreTake(xUBXMutex, timeout) == pdTRUE) {
+       taskENTER_CRITICAL();
+       if (CAN1_MessageTransmit(0x475, 8, &PDU_cov.NavCOV_PartA[0], 1, 0, 0) == true) { HB_LED_Toggle(); }
+       if (CAN1_MessageTransmit(0x476, 8, &PDU_cov.NavCOV_PartB[0], 1, 0, 0) == true) { HB_LED_Toggle(); }
+       if (CAN1_MessageTransmit(0x477, 8, &PDU_cov.NavCOV_PartC[0], 1, 0, 0) == true) { HB_LED_Toggle(); }
+       taskEXIT_CRITICAL();
    
-   PDU_cov.f_NavCOV = 0;
+       PDU_cov.f_NavCOV = 0;
   
-   xSemaphoreGive(xUBXMutex);
+       xSemaphoreGive(xUBXMutex);
+   }
+     else {
+       /* Timeout occurred - implement SW reset*/
+       while(1);
+     }
   }
   
   if (PDU_sol.f_NavSOL == 1) {
-  xSemaphoreTake(xUBXMutex, portMAX_DELAY);
-  //taskENTER_CRITICAL();
-  if (CAN1_MessageTransmit(0x478, 8, &PDU_sol.NavSOL_PartA[0], 1, 0, 0) == true) { HB_LED_Toggle(); }
-  if (CAN1_MessageTransmit(0x479, 8, &PDU_sol.NavSOL_PartB[0], 1, 0, 0) == true) { HB_LED_Toggle(); }
-  if (CAN1_MessageTransmit(0x480, 8, &PDU_sol.NavSOL_PartC[0], 1, 0, 0) == true) { HB_LED_Toggle(); }
-  //taskEXIT_CRITICAL();
-  HB_LED_Toggle();
+    if(xSemaphoreTake(xUBXMutex, timeout) == pdTRUE) {
+      taskENTER_CRITICAL();
+      if (CAN1_MessageTransmit(0x478, 8, &PDU_sol.NavSOL_PartA[0], 1, 0, 0) == true) { HB_LED_Toggle(); }
+      if (CAN1_MessageTransmit(0x479, 8, &PDU_sol.NavSOL_PartB[0], 1, 0, 0) == true) { HB_LED_Toggle(); }
+      if (CAN1_MessageTransmit(0x480, 8, &PDU_sol.NavSOL_PartC[0], 1, 0, 0) == true) { HB_LED_Toggle(); }
+      taskEXIT_CRITICAL();
   
-  PDU_sol.f_NavSOL = 0;
+      PDU_sol.f_NavSOL = 0;
   
-  xSemaphoreGive(xUBXMutex);
+      xSemaphoreGive(xUBXMutex);
+    }
+    else {
+      /* Timeout occurred - implement SW reset*/
+      while(1);   
+    }
   }
   
-  vTaskDelay(pdMS_TO_TICKS(1000));
+  vTaskDelay(pdMS_TO_TICKS(250));
 }
 
+void vTaskSendUBXheartbeat(void)
+{
+  uint8_t GNSS_Heartbeat[8] = {0xA5, 0xA5, 0xDE, 0xAD, 0xBE, 0xEF, 0xA5, 0xA5};
+  
+  CAN1_MessageTransmit(0x481, 8, &GNSS_Heartbeat[0], 1, 0, 0);
+  //HB_LED_Toggle();
+  vTaskDelay(pdMS_TO_TICKS(2000));
+  
+}
+
+
 /* Determine if a beginning of frame sequence has been found */
-uint8_t UBXframeFound(uint8_t UBXByte, uint8_t* FrameType)
+uint8_t UBXframeFind(uint8_t UBXByte, uint8_t* FrameType)
 {
   static uint8_t FrameStartPosition = 0;
   uint8_t sUBXframeFound = 0;
@@ -438,9 +469,9 @@ void PackPDU(uint8_t FrameType)
   return;
 }
 
-void vTaskGetUART1byte_Init(void)
+void vTaskGetUART1bytes_Init(void)
 {
-  xTaskGetUART1byte = NULL;
+  xTaskGetUART1bytes = NULL;
   DMAC_ChannelCallbackRegister(DMAC_CHANNEL_1, UARTDmaChannelHandler, 0);
   DMAC_ChannelTransfer(DMAC_CHANNEL_1, (const void *)&U1RXREG, 1, &readByte, sizeof(readByte), 1); /* DMA is set to run continuously */
 }
@@ -453,5 +484,10 @@ void vTaskProcessUBXmessage_Init(void)
 void vTaskSendUBXmessage_Init(void)
 {
   xTaskSendUBXmessage = NULL;
+}
+
+void vTaskSendUBXheartbeat_Init(void)
+{
+  xTaskSendUBXheartbeat = NULL;
 }
 
