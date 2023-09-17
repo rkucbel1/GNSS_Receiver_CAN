@@ -190,6 +190,7 @@ void vTaskSendUBXmessage(void)
       if (CAN1_MessageTransmit(0x472, 8, &PDU_pvt.NavPVT_LatLon[0], 1, 0, 0) == true) { HB_LED_Toggle(); }
       if (CAN1_MessageTransmit(0x473, 8, &PDU_pvt.NavPVT_Height[0], 1, 0, 0) == true) { HB_LED_Toggle(); }
       if (CAN1_MessageTransmit(0x474, 8, &PDU_pvt.NavPVT_VNED[0], 1, 0, 0) == true) { HB_LED_Toggle(); }
+      WDT_Clear();
       taskEXIT_CRITICAL();
     
       PDU_pvt.f_NavPVT = 0;
@@ -208,6 +209,7 @@ void vTaskSendUBXmessage(void)
        if (CAN1_MessageTransmit(0x475, 8, &PDU_cov.NavCOV_PartA[0], 1, 0, 0) == true) { HB_LED_Toggle(); }
        if (CAN1_MessageTransmit(0x476, 8, &PDU_cov.NavCOV_PartB[0], 1, 0, 0) == true) { HB_LED_Toggle(); }
        if (CAN1_MessageTransmit(0x477, 8, &PDU_cov.NavCOV_PartC[0], 1, 0, 0) == true) { HB_LED_Toggle(); }
+       WDT_Clear();
        taskEXIT_CRITICAL();
    
        PDU_cov.f_NavCOV = 0;
@@ -226,6 +228,7 @@ void vTaskSendUBXmessage(void)
       if (CAN1_MessageTransmit(0x478, 8, &PDU_sol.NavSOL_PartA[0], 1, 0, 0) == true) { HB_LED_Toggle(); }
       if (CAN1_MessageTransmit(0x479, 8, &PDU_sol.NavSOL_PartB[0], 1, 0, 0) == true) { HB_LED_Toggle(); }
       if (CAN1_MessageTransmit(0x480, 8, &PDU_sol.NavSOL_PartC[0], 1, 0, 0) == true) { HB_LED_Toggle(); }
+      WDT_Clear();
       taskEXIT_CRITICAL();
   
       PDU_sol.f_NavSOL = 0;
@@ -246,7 +249,7 @@ void vTaskSendUBXheartbeat(void)
   uint8_t GNSS_Heartbeat[8] = {0xA5, 0xA5, 0xDE, 0xAD, 0xBE, 0xEF, 0xA5, 0xA5};
   
   CAN1_MessageTransmit(0x481, 8, &GNSS_Heartbeat[0], 1, 0, 0);
-  //HB_LED_Toggle();
+  WDT_Clear();
   vTaskDelay(pdMS_TO_TICKS(2000));
   
 }

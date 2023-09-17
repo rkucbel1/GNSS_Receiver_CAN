@@ -207,12 +207,11 @@ void SYS_Initialize ( void* data )
 
     DMAC_Initialize();
 
-
-
     sysObj.sysTime = SYS_TIME_Initialize(SYS_TIME_INDEX_0, (SYS_MODULE_INIT *)&sysTimeInitData);
 
-
     EVIC_Initialize();
+    
+    WDT_Enable();
     
     vTaskGetUART1bytes_Init();
     vTaskProcessUBXmessage_Init();

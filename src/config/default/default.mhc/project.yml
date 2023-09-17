@@ -41,13 +41,13 @@ files:
   security: NON_SECURE
   type: SOURCE
   userChecksum: 972E955D94A63BA89BF6ABD6AADB1023
-- generatedChecksum: CB5B7A35407CBB03ABFBD48CB28C0057
+- generatedChecksum: 56461F7B6A3CE0F810D843431A7F8115
   logicalPath: config/default
   name: initialization.c
   physicalPath: ''
   security: NON_SECURE
   type: SOURCE
-  userChecksum: 12C494CFBF365FBBFD6FB9F2471F3DE1
+  userChecksum: 3ABF646664B6117F31365D1121896028
 - generatedChecksum: 3A8BE9097F3070E255EC385BEF3D7696
   logicalPath: config/default
   name: interrupts.c
@@ -132,6 +132,13 @@ files:
   security: NON_SECURE
   type: SOURCE
   userChecksum: 6D2EB7E9E00F0598E9DC6B0B2B013A77
+- generatedChecksum: D2B5BDC2F4578FDBBADED01931AF6259
+  logicalPath: config/default/peripheral/wdt
+  name: plib_wdt.c
+  physicalPath: peripheral/wdt
+  security: NON_SECURE
+  type: SOURCE
+  userChecksum: D2B5BDC2F4578FDBBADED01931AF6259
 - generatedChecksum: 0E851159CFF7B40028D295108F0F7474
   logicalPath: FreeRTOS/Source/portable/MPLAB/PIC32MK
   name: port.c
@@ -180,7 +187,7 @@ files:
   physicalPath: ''
   security: NON_SECURE
   type: SOURCE
-  userChecksum: B3820084970AFCC1B0808DB7EF0D8256
+  userChecksum: 9A44C7AC4D7E01A803B68AA312760E4E
 - generatedChecksum: F1B86F6E1527FD59A8713B67564F2898
   logicalPath: FreeRTOS/Source
   name: timers.c
@@ -230,13 +237,13 @@ files:
   security: NON_SECURE
   type: HEADER
   userChecksum: 48B661D8C967C6BC397001F10FB43D1D
-- generatedChecksum: 4F7E78B08E573D13CF3A9E09C990E037
+- generatedChecksum: BAC811DAE3F0583219BE65DE2EC502EA
   logicalPath: config/default
   name: definitions.h
   physicalPath: ''
   security: NON_SECURE
   type: HEADER
-  userChecksum: 4F7E78B08E573D13CF3A9E09C990E037
+  userChecksum: BAC811DAE3F0583219BE65DE2EC502EA
 - generatedChecksum: 1EA4EDD5EA90F43EC407DE32441159A9
   logicalPath: FreeRTOS/Source/include
   name: deprecated_definitions.h
@@ -384,6 +391,13 @@ files:
   security: NON_SECURE
   type: HEADER
   userChecksum: 67EEAF539A53B6B8FD7B600ACCB3F3CA
+- generatedChecksum: 52646F9F1734C5AA98A212549F6FE3E3
+  logicalPath: config/default/peripheral/wdt
+  name: plib_wdt.h
+  physicalPath: peripheral/wdt
+  security: NON_SECURE
+  type: HEADER
+  userChecksum: 52646F9F1734C5AA98A212549F6FE3E3
 - generatedChecksum: 5A686FF678CBFBB4A1FEB86B66DCEC98
   logicalPath: FreeRTOS/Source/include
   name: portable.h
